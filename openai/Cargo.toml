@@ -20,3 +20,22 @@ edition = "2021"
 authors = ["Embyr"]
 
 [dependencies]
+
+[features]
+default = []
+
+stable = [
+    "default",
+]
+
+experimental = [
+  # The experimental feature extends stable:
+  "stable",
+  # The following features are experimental:
+]
+
+[package.metadata.docs.rs]
+features = [
+  "stable",
+  "experimental"
+]
