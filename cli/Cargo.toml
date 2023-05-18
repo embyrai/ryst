@@ -14,13 +14,18 @@
 
 [package]
 name = "ryst"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 authors = ["Embyr"]
+license = "Apache-2.0"
+description = """\
+    The ryst CLI tool.
+"""
+repository = "https://github.com/embyrai/ryst"
 
 [dependencies]
-ryst-openai = { path = "../openai", version = "=0.1.0" } # ryst-openai Version
+ryst-openai = { path = "../openai", version = "=0.1.1" } # ryst-openai Version
 
 [features]
 default = []

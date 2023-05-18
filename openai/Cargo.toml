@@ -14,10 +14,15 @@
 
 [package]
 name = "ryst-openai"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 authors = ["Embyr"]
+license = "Apache-2.0"
+description = """\
+    A Rust library for integrating with OpenAI's APIs.
+"""
+repository = "https://github.com/embyrai/ryst"
 
 [dependencies]
 
