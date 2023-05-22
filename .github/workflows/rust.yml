@@ -1,0 +1,36 @@
+name: Rust
+
+on:
+  pull_request:
+    branches: [ main ]
+
+  schedule:
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: "${{ github.ref }}-${{ github.workflow }}"
+  cancel-in-progress: true
+
+jobs:
+  build_rust:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Print rustc version
+        run: rustc --version
+      - name: Install Just
+        run: sudo snap install --edge --classic just
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.2.0
+      - name: Lint
+        run: just lint
+      - name: Build
+        run: just build
+      - name: Run tests
+        run: just test
