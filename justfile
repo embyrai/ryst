@@ -16,6 +16,7 @@
 
 crates := '\
     openai \
+    error \
     cli
     '
 

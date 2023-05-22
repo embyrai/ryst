@@ -21,6 +21,7 @@ authors = ["Embyr"]
 
 [dependencies]
 ryst-openai = { path = "../openai", version = "=0.1.0" } # ryst-openai Version
+ryst-error = { path = "../error", version = "=0.1.0" } # ryst-error Version
 
 [features]
 default = []
