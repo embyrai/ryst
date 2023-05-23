@@ -34,6 +34,11 @@ build:
     do
         for crate in $(echo {{crates}})
         do
+            if [ "$crate" = "openai" ] && [ "$feature" != "--no-default-features" ]; then
+                cmd="cargo build --tests --manifest-path=$crate/Cargo.toml $BUILD_MODE $feature,integration"
+                echo "\033[1m$cmd\033[0m"
+                $cmd
+            fi
             cmd="cargo build --tests --manifest-path=$crate/Cargo.toml $feature"
             echo "\033[1m$cmd\033[0m"
             $cmd

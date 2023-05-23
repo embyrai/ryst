@@ -24,6 +24,7 @@ pub use response::{Choice, CompletionResponse, Usage};
 // The following tests require that OPENAI_API_KEY (optionally OPENAI_API_ORG)
 // are set. We are using the "ada" model as this is the cheapest and the tests
 // will burn tokens.
+#[cfg(feature = "integration")]
 #[cfg(test)]
 mod tests {
     use super::*;
