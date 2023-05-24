@@ -14,9 +14,19 @@
 
 use std::collections::HashMap;
 use std::fmt;
+use std::pin::Pin;
 
+use bytes::{Bytes, BytesMut};
+use futures::Stream;
+use futures::StreamExt;
+use reqwest::Result as ReqwestResult;
+use ryst_error::{InternalError, InvalidStateError};
 use serde::de::{Deserializer, Visitor};
 use serde::Deserialize;
+
+use crate::error::OpenAIError;
+
+const STREAM_TERMINATION_STRING: &str = "[DONE]";
 
 /// The response returned from a completion request.
 #[derive(Debug, Deserialize, PartialEq)]
@@ -91,4 +101,44 @@ where
     }
 
     deserializer.deserialize_seq(LogProbsVisitor)
+}
+
+/// The response that contains a stream returned from a completion request.
+pub struct CompletionResponseStream {
+    stream: Pin<Box<dyn Stream<Item = ReqwestResult<Bytes>> + Send + 'static>>,
+}
+
+impl CompletionResponseStream {
+    pub fn new(stream: Pin<Box<dyn Stream<Item = ReqwestResult<Bytes>> + Send + 'static>>) -> Self {
+        Self { stream }
+    }
+
+    /// Use the stream to get the full response
+    pub async fn next(&mut self) -> Result<Option<CompletionResponse>, OpenAIError> {
+        let mut full_bytes = BytesMut::new();
+        while let Some(value) = self.stream.next().await {
+            match value {
+                Ok(bytes) => {
+                    if bytes != STREAM_TERMINATION_STRING.as_bytes() {
+                        full_bytes.extend_from_slice(&bytes)
+                    }
+                }
+                Err(err) => {
+                    return Err(OpenAIError::Internal(InternalError::from_source(Box::new(
+                        err,
+                    ))))
+                }
+            }
+        }
+
+        if full_bytes.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(
+                serde_json::from_slice::<CompletionResponse>(&full_bytes).map_err(|err| {
+                    OpenAIError::InvalidState(InvalidStateError::with_message(err.to_string()))
+                })?,
+            ))
+        }
+    }
 }

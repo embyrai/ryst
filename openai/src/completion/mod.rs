@@ -19,7 +19,7 @@ mod request;
 mod response;
 
 pub use request::CompletionRequest;
-pub use response::{Choice, CompletionResponse, Usage};
+pub use response::{Choice, CompletionResponse, CompletionResponseStream, Usage};
 
 // The following tests require that OPENAI_API_KEY (optionally OPENAI_API_ORG)
 // are set. We are using the "ada" model as this is the cheapest and the tests
@@ -32,14 +32,46 @@ mod tests {
     use std::collections::HashMap;
 
     #[tokio::test]
-    // Verify that a simple completion returns a completion response
-    async fn test_completion() {
+    // Verify that a simple completion submit returns a completion response
+    async fn test_completion_submit() {
         let response = CompletionRequest::new("ada", "Say this is a test")
             .submit()
             .await
             .unwrap();
 
         assert!(!response.choices.is_empty());
+    }
+
+    #[tokio::test]
+    // Verify that a simple completion stream returns a completion response
+    async fn test_completion_stream_small() {
+        let mut stream = CompletionRequest::new("ada", "Say this is a test")
+            .stream()
+            .await
+            .unwrap();
+
+        let response_some = stream.next().await.unwrap();
+        let response_none = stream.next().await.unwrap();
+
+        assert!(response_some.is_some());
+        assert!(response_none.is_none());
+    }
+
+    #[tokio::test]
+    // Verify that a simple completion stream returns a completion response
+    async fn test_completion_stream_large() {
+        let mut stream = CompletionRequest::new("ada", "Say this is a test")
+            .with_max_tokens(150)
+            .with_n(2)
+            .stream()
+            .await
+            .unwrap();
+
+        let response_some = stream.next().await.unwrap();
+        let response_none = stream.next().await.unwrap();
+
+        assert!(response_some.is_some());
+        assert!(response_none.is_none());
     }
 
     #[tokio::test]

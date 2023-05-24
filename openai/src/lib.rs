@@ -21,5 +21,7 @@ mod error;
 
 const OPEN_AI_URL: &str = "https://api.openai.com";
 
-pub use completion::{Choice, CompletionRequest, CompletionResponse, Usage};
+pub use completion::{
+    Choice, CompletionRequest, CompletionResponse, CompletionResponseStream, Usage,
+};
 pub use error::OpenAIError;

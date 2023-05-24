@@ -22,7 +22,7 @@ use serde::Serialize;
 use crate::error::OpenAIError;
 use crate::OPEN_AI_URL;
 
-use super::CompletionResponse;
+use super::{CompletionResponse, CompletionResponseStream};
 
 /// Builder for creating the completion request and submitting to OpenAI API.
 #[derive(Debug, Serialize, PartialEq, Default)]
@@ -109,6 +109,13 @@ impl CompletionRequest {
             )));
         }
 
+        if self.stream == Some(true) {
+            return Err(OpenAIError::InvalidArgument(InvalidArgumentError::new(
+                "stream",
+                "Use stream() instead of submit",
+            )));
+        }
+
         match request.send().await {
             Ok(response) => {
                 // Check if the status is a 2XX code.
@@ -118,6 +125,76 @@ impl CompletionRequest {
                         OpenAIError::InvalidState(InvalidStateError::with_message(err.to_string()))
                     })?;
                     Ok(result)
+                } else {
+                    let text = response.text().await.map_err(|err| {
+                        OpenAIError::InvalidState(InvalidStateError::with_message(err.to_string()))
+                    })?;
+                    if status.is_client_error() {
+                        Err(OpenAIError::InvalidArgument(InvalidArgumentError::new(
+                            "request", text,
+                        )))
+                    } else {
+                        Err(OpenAIError::Internal(InternalError::with_message(text)))
+                    }
+                }
+            }
+            Err(err) => Err(OpenAIError::Internal(InternalError::from_source(Box::new(
+                err,
+            )))),
+        }
+    }
+
+    /// Submit the completion request to the OpenAI url and stream back the response.
+    ///
+    /// Requires that `OPENAI_API_KEY` environment variable is set. Optionally,
+    /// the org will be added if `OPENAI_API_ORG` is set.
+    /// Submit the completion request to the OpenAI url.
+    ///
+    /// Requires that `OPENAI_API_KEY` environment variable is set. Optionally,
+    /// the org will be added if `OPENAI_API_ORG` is set.
+    pub async fn stream(mut self) -> Result<CompletionResponseStream, OpenAIError> {
+        let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
+            OpenAIError::InvalidState(InvalidStateError::with_message(
+                "OPENAI_API_KEY env variable must be set".to_string(),
+            ))
+        })?;
+
+        let mut request = Client::new()
+            .post(format!("{OPEN_AI_URL}/v1/completions"))
+            .header("Authorization", format!("Bearer {api_key}"))
+            .header("Content-Type", "application/json")
+            .json(&self);
+
+        if let Ok(org) = env::var("OPENAI_API_ORG") {
+            request = request.header("OpenAI-Organization", org)
+        };
+
+        if let Some(stops) = self.stop {
+            if stops.len() > 4 {
+                return Err(OpenAIError::InvalidArgument(InvalidArgumentError::new(
+                    "stop",
+                    "You can only provide up to 4 stop sequences",
+                )));
+            }
+        }
+
+        if self.temperature.is_some() && self.top_p.is_some() {
+            return Err(OpenAIError::InvalidArgument(InvalidArgumentError::new(
+                "temperature",
+                "Use temperature or top_p but not both",
+            )));
+        }
+
+        self.stream = Some(true);
+
+        match request.send().await {
+            Ok(response) => {
+                // Check if the status is a 2XX code.
+                let status = response.status();
+                if status.is_success() {
+                    Ok(CompletionResponseStream::new(Box::pin(
+                        response.bytes_stream(),
+                    )))
                 } else {
                     let text = response.text().await.map_err(|err| {
                         OpenAIError::InvalidState(InvalidStateError::with_message(err.to_string()))
