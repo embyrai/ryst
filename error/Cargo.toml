@@ -12,10 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[workspace]
+[package]
+name = "ryst-error"
+version = "0.1.0"
+edition = "2021"
 
-members = [
-    "cli",
-    "error",
-    "openai",
+authors = ["Embyr"]
+
+[dependencies]
+
+[features]
+default = []
+stable = []
+experimental = [
+]
+
+[package.metadata.docs.rs]
+features = [
+  "stable",
+  "experimental"
 ]

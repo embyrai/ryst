@@ -1,10 +1,10 @@
-// Copyright 2023 Embyr
+// Copyright 2018-2022 Cargill Incorporated
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! SDK for the OpenAI API
+mod cli;
+mod internal;
+mod invalid_argument;
+mod invalid_state;
 
-extern crate serde;
-
-mod completion;
-mod error;
-
-const OPEN_AI_URL: &str = "https://api.openai.com";
-
-pub use completion::{
-    Choice, CompletionRequest, CompletionResponse, CompletionResponseStream, Usage,
-};
-pub use error::OpenAIError;
+pub use cli::CliError;
+pub use internal::InternalError;
+pub use invalid_argument::InvalidArgumentError;
+pub use invalid_state::InvalidStateError;
