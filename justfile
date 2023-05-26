@@ -105,9 +105,15 @@ version-check:
     openai_version=$(cargo metadata --format-version 1 --no-deps \
         | jq '.packages[] | select(.name == "ryst-openai") | .version' \
         | sed -e 's/"//g')
+    error_version=$(cargo metadata --format-version 1 --no-deps \
+        | jq '.packages[] | select(.name == "ryst-error") | .version' \
+        | sed -e 's/"//g')
 
-    cli_dep_version=$(cat cli/Cargo.toml \
+    cli_openai_dep_version=$(cat cli/Cargo.toml \
         | grep "# ryst-openai Version" | sed -e 's/^.*"=//' -e 's/".*//')
+
+    cli_error_dep_version=$(cat cli/Cargo.toml \
+        | grep "# ryst-error Version" | sed -e 's/^.*"=//' -e 's/".*//')
 
     if [ "$version" != "$openai_version" ]; then
         echo "expected $version but found $openai_version in openai/Cargo.toml"
@@ -119,8 +125,18 @@ version-check:
         exit 1
     fi
 
-    if [ "$version" != "$cli_dep_version" ]; then
-        echo "expected $version but found $cli_dep_version in cli/Cargo.toml for the ryst-openai dependency"
+    if [ "$version" != "$error_version" ]; then
+        echo "expected $version but found $error_version in error/Cargo.toml"
+        exit 1
+    fi
+
+    if [ "$version" != "$cli_openai_dep_version" ]; then
+        echo "expected $version but found $cli_openai_dep_version in cli/Cargo.toml for the ryst-openai dependency"
+        exit 1
+    fi
+
+    if [ "$version" != "$cli_error_dep_version" ]; then
+        echo "expected $version but found $cli_error_dep_version in cli/Cargo.toml for the ryst-error dependency"
         exit 1
     fi
 
