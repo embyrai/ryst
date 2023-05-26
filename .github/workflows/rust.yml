@@ -34,3 +34,5 @@ jobs:
         run: just build
       - name: Run tests
         run: just test
+      - name: Check Versions
+        run: just version-check
