@@ -27,6 +27,7 @@ pub use chat_completion::{
     ChatUsage, Message,
 };
 pub use completion::{
-    Choice, CompletionRequest, CompletionResponse, CompletionResponseStream, Usage,
+    CompletionChoice, CompletionRequest, CompletionResponse, CompletionResponseStream,
+    CompletionUsage,
 };
 pub use error::OpenAIError;

@@ -40,14 +40,14 @@ pub struct CompletionResponse {
     /// The model the response was created with
     pub model: String,
     /// The list of generated completions
-    pub choices: Vec<Choice>,
+    pub choices: Vec<CompletionChoice>,
     /// The tokens used by this response and associated request
-    pub usage: Usage,
+    pub usage: CompletionUsage,
 }
 
 /// The tokens consumed by the completion
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct Usage {
+pub struct CompletionUsage {
     pub prompt_tokens: i32,
     pub completion_tokens: i32,
     pub total_tokens: i32,
@@ -55,7 +55,7 @@ pub struct Usage {
 
 /// A generated completion
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct Choice {
+pub struct CompletionChoice {
     pub text: String,
     pub index: i32,
     pub logprobs: Option<Logprobs>,
