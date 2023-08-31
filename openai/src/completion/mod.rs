@@ -19,7 +19,9 @@ mod request;
 mod response;
 
 pub use request::CompletionRequest;
-pub use response::{Choice, CompletionResponse, CompletionResponseStream, Usage};
+pub use response::{
+    CompletionChoice, CompletionResponse, CompletionResponseStream, CompletionUsage,
+};
 
 // The following tests require that OPENAI_API_KEY (optionally OPENAI_API_ORG)
 // are set. We are using the "ada" model as this is the cheapest and the tests

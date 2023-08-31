@@ -16,12 +16,18 @@
 
 extern crate serde;
 
+mod chat_completion;
 mod completion;
 mod error;
 
 const OPEN_AI_URL: &str = "https://api.openai.com";
 
+pub use chat_completion::{
+    ChatChoice, ChatCompletionRequest, ChatCompletionResponse, ChatCompletionResponseStream,
+    ChatUsage, Message,
+};
 pub use completion::{
-    Choice, CompletionRequest, CompletionResponse, CompletionResponseStream, Usage,
+    CompletionChoice, CompletionRequest, CompletionResponse, CompletionResponseStream,
+    CompletionUsage,
 };
 pub use error::OpenAIError;

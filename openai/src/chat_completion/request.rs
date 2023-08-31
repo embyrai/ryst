@@ -17,22 +17,41 @@ use std::env;
 
 use reqwest::Client;
 use ryst_error::{InternalError, InvalidArgumentError, InvalidStateError};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::OpenAIError;
 use crate::OPEN_AI_URL;
 
-use super::{CompletionResponse, CompletionResponseStream};
+use super::{ChatCompletionResponse, ChatCompletionResponseStream};
 
-/// Builder for creating the completion request and submitting to OpenAI API.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default, Clone)]
+pub struct Message {
+    pub role: String,
+    pub content: String,
+}
+
+impl Message {
+    pub fn new(role: &str, content: &str) -> Self {
+        Self {
+            role: role.to_string(),
+            content: content.to_string(),
+        }
+    }
+
+    pub fn role(&self) -> &str {
+        &self.role
+    }
+
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+}
+
+/// Builder for creating the chat completion request and submitting to OpenAI API.
 #[derive(Debug, Serialize, PartialEq, Default)]
-pub struct CompletionRequest {
+pub struct ChatCompletionRequest {
     model: String,
-    prompt: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    suffix: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    max_tokens: Option<i32>,
+    messages: Vec<Message>,
     #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,31 +61,27 @@ pub struct CompletionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    logprobs: Option<i8>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    echo: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     stop: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     presence_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     frequency_penalty: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    best_of: Option<i8>,
     #[serde(skip_serializing_if = "Option::is_none")]
     logit_bias: Option<HashMap<String, i8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     user: Option<String>,
 }
 
-impl CompletionRequest {
-    /// Create a new `CompletionRequest` builder
+impl ChatCompletionRequest {
+    /// Create a new `ChatCompletionRequest` builder
     ///
     /// Takes a model and prompt, as these are always required.
-    pub fn new(model: &str, prompt: &str) -> Self {
-        CompletionRequest {
+    pub fn new(model: &str, messages: &[Message]) -> Self {
+        ChatCompletionRequest {
             model: model.to_string(),
-            prompt: prompt.to_string(),
+            messages: messages.to_vec(),
             ..Default::default()
         }
     }
@@ -75,7 +90,7 @@ impl CompletionRequest {
     ///
     /// Requires that `OPENAI_API_KEY` environment variable is set. Optionally,
     /// the org will be added if `OPENAI_API_ORG` is set.
-    pub async fn submit(self) -> Result<CompletionResponse, OpenAIError> {
+    pub async fn submit(self) -> Result<ChatCompletionResponse, OpenAIError> {
         let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
             OpenAIError::InvalidState(InvalidStateError::with_message(
                 "OPENAI_API_KEY env variable must be set".to_string(),
@@ -83,7 +98,7 @@ impl CompletionRequest {
         })?;
 
         let mut request = Client::new()
-            .post(format!("{OPEN_AI_URL}/v1/completions"))
+            .post(format!("{OPEN_AI_URL}/v1/chat/completions"))
             .header("Authorization", format!("Bearer {api_key}"))
             .header("Content-Type", "application/json")
             .json(&self);
@@ -120,9 +135,15 @@ impl CompletionRequest {
                 // Check if the status is a 2XX code.
                 let status = response.status();
                 if status.is_success() {
-                    let result = response.json::<CompletionResponse>().await.map_err(|err| {
-                        OpenAIError::InvalidState(InvalidStateError::with_message(err.to_string()))
-                    })?;
+                    let result =
+                        response
+                            .json::<ChatCompletionResponse>()
+                            .await
+                            .map_err(|err| {
+                                OpenAIError::InvalidState(InvalidStateError::with_message(
+                                    err.to_string(),
+                                ))
+                            })?;
                     Ok(result)
                 } else {
                     let text = response.text().await.map_err(|err| {
@@ -143,7 +164,7 @@ impl CompletionRequest {
         }
     }
 
-    /// Submit the completion request to the OpenAI url and stream back the response.
+    /// Submit the chat completion request to the OpenAI url and stream back the response.
     ///
     /// Requires that `OPENAI_API_KEY` environment variable is set. Optionally,
     /// the org will be added if `OPENAI_API_ORG` is set.
@@ -151,7 +172,7 @@ impl CompletionRequest {
     ///
     /// Requires that `OPENAI_API_KEY` environment variable is set. Optionally,
     /// the org will be added if `OPENAI_API_ORG` is set.
-    pub async fn stream(mut self) -> Result<CompletionResponseStream, OpenAIError> {
+    pub async fn stream(mut self) -> Result<ChatCompletionResponseStream, OpenAIError> {
         let api_key = env::var("OPENAI_API_KEY").map_err(|_| {
             OpenAIError::InvalidState(InvalidStateError::with_message(
                 "OPENAI_API_KEY env variable must be set".to_string(),
@@ -159,7 +180,7 @@ impl CompletionRequest {
         })?;
 
         let mut request = Client::new()
-            .post(format!("{OPEN_AI_URL}/v1/completions"))
+            .post(format!("{OPEN_AI_URL}/v1/chat/completions"))
             .header("Authorization", format!("Bearer {api_key}"))
             .header("Content-Type", "application/json")
             .json(&self);
@@ -191,7 +212,7 @@ impl CompletionRequest {
                 // Check if the status is a 2XX code.
                 let status = response.status();
                 if status.is_success() {
-                    Ok(CompletionResponseStream::new(Box::pin(
+                    Ok(ChatCompletionResponseStream::new(Box::pin(
                         response.bytes_stream(),
                     )))
                 } else {
@@ -211,14 +232,6 @@ impl CompletionRequest {
                 err,
             )))),
         }
-    }
-
-    /// Add a suffix that comes after a completion of inserted text.
-    ///
-    /// Only works with some models.
-    pub fn with_suffix(mut self, suffix: &str) -> Self {
-        self.suffix = Some(suffix.to_string());
-        self
     }
 
     /// The maximum number of tokens to generate in the completion.
@@ -247,18 +260,6 @@ impl CompletionRequest {
     /// How many completions to generate for each prompt.
     pub fn with_n(mut self, n: i8) -> Self {
         self.n = Some(n);
-        self
-    }
-
-    /// Include the log probabilities on the logprobs most likely tokens, as well the chosen tokens.
-    pub fn with_logprobs(mut self, logprobs: i8) -> Self {
-        self.logprobs = Some(logprobs);
-        self
-    }
-
-    /// Echo back the prompt in addition to the completion
-    pub fn with_echo(mut self, echo: bool) -> Self {
-        self.echo = Some(echo);
         self
     }
 
@@ -295,14 +296,6 @@ impl CompletionRequest {
     /// Takes a number between -2.0 and 2.0
     pub fn with_frequency_penalty(mut self, frequency_penalty: f32) -> Self {
         self.frequency_penalty = Some(frequency_penalty);
-        self
-    }
-
-    /// Generates best_of completions server-side and returns the "best"
-    ///
-    /// The one with the highest log probability per token. Results cannot be streamed.
-    pub fn with_best_of(mut self, best_of: i8) -> Self {
-        self.best_of = Some(best_of);
         self
     }
 

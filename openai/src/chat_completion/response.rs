@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
-use std::fmt;
 use std::pin::Pin;
 
 use bytes::{Bytes, BytesMut};
@@ -21,16 +19,17 @@ use futures::Stream;
 use futures::StreamExt;
 use reqwest::Result as ReqwestResult;
 use ryst_error::{InternalError, InvalidStateError};
-use serde::de::{Deserializer, Visitor};
 use serde::Deserialize;
 
 use crate::error::OpenAIError;
+
+use super::request::Message;
 
 const STREAM_TERMINATION_STRING: &str = "[DONE]";
 
 /// The response returned from a completion request.
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct CompletionResponse {
+pub struct ChatCompletionResponse {
     /// Request ID
     pub id: String,
     /// Response type
@@ -40,14 +39,14 @@ pub struct CompletionResponse {
     /// The model the response was created with
     pub model: String,
     /// The list of generated completions
-    pub choices: Vec<CompletionChoice>,
+    pub choices: Vec<ChatChoice>,
     /// The tokens used by this response and associated request
-    pub usage: CompletionUsage,
+    pub usage: ChatUsage,
 }
 
 /// The tokens consumed by the completion
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct CompletionUsage {
+pub struct ChatUsage {
     pub prompt_tokens: i32,
     pub completion_tokens: i32,
     pub total_tokens: i32,
@@ -55,66 +54,24 @@ pub struct CompletionUsage {
 
 /// A generated completion
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct CompletionChoice {
-    pub text: String,
+pub struct ChatChoice {
+    pub message: Message,
     pub index: i32,
-    pub logprobs: Option<Logprobs>,
     pub finish_reason: String,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
-pub struct Logprobs {
-    pub tokens: Vec<String>,
-    pub token_logprobs: Vec<f32>,
-    #[serde(deserialize_with = "flatten_log_probs")]
-    pub top_logprobs: HashMap<String, f32>,
-    pub text_offset: Vec<i32>,
-}
-
-fn flatten_log_probs<'de, D>(deserializer: D) -> Result<HashMap<String, f32>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct LogProbsVisitor;
-
-    impl<'de> Visitor<'de> for LogProbsVisitor {
-        type Value = HashMap<String, f32>;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a sequence of maps")
-        }
-
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::SeqAccess<'de>,
-        {
-            let mut result = HashMap::new();
-
-            while let Some(map) = seq.next_element::<HashMap<String, f32>>()? {
-                for (key, value) in map {
-                    result.insert(key, value);
-                }
-            }
-
-            Ok(result)
-        }
-    }
-
-    deserializer.deserialize_seq(LogProbsVisitor)
-}
-
-/// The response that contains a stream returned from a completion request.
-pub struct CompletionResponseStream {
+/// The response that contains a stream returned from a chat completion request.
+pub struct ChatCompletionResponseStream {
     stream: Pin<Box<dyn Stream<Item = ReqwestResult<Bytes>> + Send + 'static>>,
 }
 
-impl CompletionResponseStream {
+impl ChatCompletionResponseStream {
     pub fn new(stream: Pin<Box<dyn Stream<Item = ReqwestResult<Bytes>> + Send + 'static>>) -> Self {
         Self { stream }
     }
 
     /// Use the stream to get the full response
-    pub async fn next(&mut self) -> Result<Option<CompletionResponse>, OpenAIError> {
+    pub async fn next(&mut self) -> Result<Option<ChatCompletionResponse>, OpenAIError> {
         let mut full_bytes = BytesMut::new();
         while let Some(value) = self.stream.next().await {
             match value {
@@ -135,7 +92,7 @@ impl CompletionResponseStream {
             Ok(None)
         } else {
             Ok(Some(
-                serde_json::from_slice::<CompletionResponse>(&full_bytes).map_err(|err| {
+                serde_json::from_slice::<ChatCompletionResponse>(&full_bytes).map_err(|err| {
                     OpenAIError::InvalidState(InvalidStateError::with_message(err.to_string()))
                 })?,
             ))
