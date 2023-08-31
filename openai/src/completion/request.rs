@@ -39,7 +39,6 @@ pub struct CompletionRequest {
     top_p: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     n: Option<i8>,
-    // not currently supported
     #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
