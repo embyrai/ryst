@@ -12,21 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! SDK for the OpenAI API
+//! This module contains a set of structs for communicating with OpenAI
+//! completions API.
 
-extern crate serde;
+mod request;
+mod response;
 
-mod chat_completion;
-mod completion;
-mod error;
-
-const OPEN_AI_URL: &str = "https://api.openai.com";
-
-pub use chat_completion::{
-    ChatChoice, ChatCompletionRequest, ChatCompletionResponse, ChatCompletionResponseStream,
-    ChatUsage, Message,
-};
-pub use completion::{
-    Choice, CompletionRequest, CompletionResponse, CompletionResponseStream, Usage,
-};
-pub use error::OpenAIError;
+pub use request::ChatCompletionRequest;
+pub use response::{ChatChoice, ChatCompletionResponse, ChatCompletionResponseStream, ChatUsage};
