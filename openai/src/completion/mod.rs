@@ -36,7 +36,7 @@ mod tests {
     #[tokio::test]
     // Verify that a simple completion submit returns a completion response
     async fn test_completion_submit() {
-        let response = CompletionRequest::new("ada", "Say this is a test")
+        let response = CompletionRequest::new("babbage-002", "Say this is a test")
             .submit()
             .await
             .unwrap();
@@ -47,7 +47,7 @@ mod tests {
     #[tokio::test]
     // Verify that a simple completion stream returns a completion response
     async fn test_completion_stream_small() {
-        let mut stream = CompletionRequest::new("ada", "Say this is a test")
+        let mut stream = CompletionRequest::new("babbage-002", "Say this is a test")
             .stream()
             .await
             .unwrap();
@@ -62,7 +62,7 @@ mod tests {
     #[tokio::test]
     // Verify that a simple completion stream returns a completion response
     async fn test_completion_stream_large() {
-        let mut stream = CompletionRequest::new("ada", "Say this is a test")
+        let mut stream = CompletionRequest::new("babbage-002", "Say this is a test")
             .with_max_tokens(150)
             .with_n(2)
             .stream()
@@ -79,7 +79,7 @@ mod tests {
     #[tokio::test]
     // Verify that a simple completion with logprobs returns with logprobs correctly
     async fn test_completion_logprobs() {
-        let response = CompletionRequest::new("ada", "Say this is a test")
+        let response = CompletionRequest::new("babbage-002", "Say this is a test")
             .with_logprobs(1)
             .submit()
             .await
@@ -91,7 +91,7 @@ mod tests {
     #[tokio::test]
     // Verify that a complicated completion returns as expected
     async fn test_completion_max_tokens_n_echo() {
-        let response = CompletionRequest::new("ada", "Say this is a test")
+        let response = CompletionRequest::new("babbage-002", "Say this is a test")
             .with_max_tokens(15)
             .with_temperature(0.0)
             .with_n(2)
@@ -110,7 +110,7 @@ mod tests {
     #[tokio::test]
     // Verify that a complicated completion returns as expected
     async fn test_completion_stop_penalty_best_of_user() {
-        let response = CompletionRequest::new("ada", "Say this is a test")
+        let response = CompletionRequest::new("babbage-002", "Say this is a test")
             .with_stop("test")
             .with_max_tokens(15)
             .with_presence_penalty(-2.0)
@@ -130,7 +130,7 @@ mod tests {
         // prevents  <|endoftext|> token from being generated
         let bias: HashMap<String, i8> = HashMap::from([("50256".to_string(), -100)]);
 
-        let response = CompletionRequest::new("ada", "Say this is a test")
+        let response = CompletionRequest::new("babbage-002", "Say this is a test")
             .with_top_p(0.1)
             .with_max_tokens(15)
             .with_logit_bias(&bias)
